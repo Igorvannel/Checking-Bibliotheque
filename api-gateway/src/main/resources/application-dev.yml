@@ -1,0 +1,74 @@
+server:
+  port: 8060
+  forward-headers-strategy: framework
+
+eureka:
+  client:
+    enabled: true
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka}
+  instance:
+    preferIpAddress: true
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} ${LOG_LEVEL_PATTERN:-%5p} %m%n"
+  level:
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.http.server.reactive: TRACE
+
+spring:
+  cloud:
+    gateway:
+      httpclient:
+        ssl:
+          useInsecureTrustManager: true
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: etudiant-service
+          uri: lb://ETUDIANT-SERVICE
+          predicates:
+            - Path=/etudiants/**, /Checking-Bibliothèque/etudiants/**
+          filters:
+            - ContextPathRewritePath=/Checking-Bibliothèque/etudiants/(?<path>.*), /$\{path}
+            - RewritePath=/etudiants/(?<path>.*), /$\{path}
+        - id: question-service
+          uri: lb://question-service
+          predicates:
+            - Path=/question/**, /Checking-Bibliothèque/question/**
+          filters:
+            - ContextPathRewritePath=/Checking-Bibliothèque/question/(?<path>.*), /$\{path}
+            - RewritePath=/question/(?<path>.*), /$\{path}
+        - id: quiz-service
+          uri: lb://quiz-service
+          predicates:
+            - Path=/quiz/**, /Checking-Bibliothèque/quiz/**
+          filters:
+            - ContextPathRewritePath=/Checking-Bibliothèque/quiz/(?<path>.*), /$\{path}
+            - RewritePath=/quiz/(?<path>.*), /$\{path}
+        - id: openapi-proxy
+          uri: https://demos.springdoc.org
+          predicates:
+            - Path=/Checking-Bibliothèque/v3/api-docs/**
+          filters:
+            - RewritePath=/Checking-Bibliothèque/v3/api-docs/(?<path>.*), /Checking-Bibliothèque/$\{path}/v3/api-docs
+        - id: openapi
+          uri: http://localhost:8060
+          predicates:
+            - Path=/v3/api-docs/**
+          filters:
+            - RewritePath=/v3/api-docs/(?<path>.*), /$\{path}/v3/api-docs
+
+
+
+
+springdoc:
+  cache:
+    disabled: true
+  version: '@springdoc.version@'
+  swagger-ui:
+    use-root-path: true
+  api-docs:
+    version: openapi_3_1
